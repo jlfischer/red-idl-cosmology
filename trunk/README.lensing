@@ -1,0 +1,47 @@
+; critical surface density
+
+; load in astroph. constants
+as=astroc()
+
+; start cosmology routines
+red,/verbose
+
+; zs=2.5 ; source redshift
+; zl=findgen(21)/10. ; lens redshifts
+zs=1.5 ; source redshift
+zl=findgen(21)/20. ; lens redshifts
+
+; all in cgs, ie output in g/cm^2
+; plot,zl,as.c^2*dangular(zl,/cm)/(4.*!dpi*as.g*dangular(zl,/cm)*dangulardiff(zl,zs,/cm))
+
+; 1Mo/pc^2 in g/cm^2
+print,as.msun/as.pc^2
+;   0.00020890816
+
+; so critical surface density in Mo/pc^2 plot is:
+plot,zl, $
+   as.c^2*dangular(zs,/cm)/(4.*!dpi*as.g*dangular(zl,/cm)*dangulardiff(zl,zs,/cm)) / $
+      (as.msun/as.pc^2), $
+   xtit='lens redshift', $
+   ytit='critical surface density, M!Do!N/pc!U2!N'
+
+zs=3.
+oplot,zl, $
+   as.c^2*dangular(zs,/cm)/(4.*!dpi*as.g*dangular(zl,/cm)*dangulardiff(zl,zs,/cm)) / $
+      (as.msun/as.pc^2), linest=1
+zs=4.
+oplot,zl, $
+   as.c^2*dangular(zs,/cm)/(4.*!dpi*as.g*dangular(zl,/cm)*dangulardiff(zl,zs,/cm)) / $
+      (as.msun/as.pc^2), linest=2
+zs=5.
+oplot,zl, $
+   as.c^2*dangular(zs,/cm)/(4.*!dpi*as.g*dangular(zl,/cm)*dangulardiff(zl,zs,/cm)) / $
+      (as.msun/as.pc^2), linest=3
+
+; for r=10kpc, surface density of 1.e12Mo/(pi * r^2) ie Mo/pc^2 :
+print,1.e12/(!dpi*1.e4^2),1.e13/(!dpi*1.e4^2)
+;       3183.0988
+
+; overplot this average density...
+oplot,[0,10],[1,1]*1.e12/(!dpi*1.e4^2),thick=2
+oplot,[0,10],[1,1]*1.e13/(!dpi*1.e4^2),thick=2

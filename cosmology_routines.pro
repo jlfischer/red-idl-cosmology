@@ -32,6 +32,9 @@ function convert_time, s=s, yr=yr, Myr=Myr
     
 return, conversion
 end
+; ----------------------------------------------------------------------
+; numerical integration routine from C. Markwardt
+; ----------------------------------------------------------------------
 
 ; ----------------------------------------------------------------------
 ; cosmological parameter access programs
@@ -218,7 +221,8 @@ function getage, z, _extra=extra
     conv = convert_time(_extra=extra)
 ;   return, conv * thubble() * qromb('agefunc',z,1000.d0,/double)
     nz = n_elements(z) & age = fltarr(nz)
-    for i = 0L, nz-1L do age[i] = conv*thubble()*qpint1d('agefunc',z[i],!values.f_infinity)
+    for i = 0L, nz-1L do age[i] = conv*thubble()*qromb('agefunc',z[i],1000D0,/double)
+;   for i = 0L, nz-1L do age[i] = conv*thubble()*qpint1d('agefunc',z[i],!values.f_infinity)
     if (nz eq 1L) then age = age[0]
     return, age
 end    

@@ -1,6 +1,45 @@
 pro cosmology_routines, _extra=extra
 return
 end
+function cosmo_findex,u,v
+; used for speeding up linear interpolation
+; AUTHOR:   Paul Ricchiazzi                        21 Feb 97
+;           Institute for Computational Earth System Science
+;           University of California, Santa Barbara
+;           paul@icess.ucsb.edu
+    nu=n_elements(u)
+    nv=n_elements(v)
+
+    if nu eq 2 then return,(v-u(0))/(u(1)-u(0))
+
+    us=u-shift(u,+1)
+    us=us(1:*)
+    umx=max(us,min=umn)
+    if umx gt 0 and umn lt 0 then message,'u must be monotonic'
+    if umx gt 0 then inc=1 else inc=0
+
+    maxiter=fix(alog(float(nu))/alog(2.)+.5) 
+
+; maxiter = maximum number of binary search iteratios
+
+    jlim=lonarr(nv,2)
+    jlim(*,0)=0                 ; array of lower limits
+    jlim(*,1)=nu-1              ; array of upper limits
+
+    iter=0
+    repeat begin
+       jj=(jlim(*,0)+jlim(*,1))/2
+       ii=where(v ge u(jj),n) & if n gt 0 then jlim(ii,1-inc)=jj(ii)
+       ii=where(v lt u(jj),n) & if n gt 0 then jlim(ii,inc)=jj(ii)
+       jdif=max(jlim(*,1)-jlim(*,0))
+       if iter gt maxiter then message,'binary search failed'
+       iter=iter+1
+    endrep until jdif eq 1 
+
+    w=v
+    w(*)=(v-u(jlim(*,0)))/(u(jlim(*,0)+1)-u(jlim(*,0)))+jlim(*,0)
+return,w
+end
 ; ----------------------------------------------------------------------
 ; units conversion programs
 ; ----------------------------------------------------------------------
@@ -221,8 +260,8 @@ function getage, z, _extra=extra
     conv = convert_time(_extra=extra)
 ;   return, conv * thubble() * qromb('agefunc',z,1000.d0,/double)
     nz = n_elements(z) & age = fltarr(nz)
-    for i = 0L, nz-1L do age[i] = conv*thubble()*qromb('agefunc',z[i],1000D0,/double)
-;   for i = 0L, nz-1L do age[i] = conv*thubble()*qpint1d('agefunc',z[i],!values.f_infinity)
+;   for i = 0L, nz-1L do age[i] = conv*thubble()*qromb('agefunc',z[i],1000D0,/double)
+    for i = 0L, nz-1L do age[i] = conv*thubble()*qpint1d('agefunc',z[i],!values.f_infinity)
     if (nz eq 1L) then age = age[0]
     return, age
 end    
@@ -231,15 +270,16 @@ function getredshift, age, _extra=extra
 ;                 interpolation works better than spline  
 
     common cosmology
-
+    common red_getredshift, bigz, bigage
+    
     conv = convert_time(_extra=extra)
-
-    zmax = 10.0 & zmin = 1E-2 & dlogz = 0.1
-    biglogz = findgen((alog10(zmax)-alog10(zmin))/dlogz+1)*dlogz+alog10(zmin)
-    bigz = 10.0^biglogz
-    bigage = getage(bigz)
-
-return, conv*(interpol(bigz,bigage,age)>0)
+    if (n_elements(bigz) eq 0) then begin
+       zmax = 20.0 & zmin = 1E-2 & dlogz = 0.02
+       biglogz = findgen((alog10(zmax)-alog10(zmin))/dlogz+1)*dlogz+alog10(zmin)
+       bigz = 10.0^biglogz
+       bigage = getage(bigz)
+    endif
+return, conv*(interpolate(bigz,cosmo_findex(bigage,age))>0)
 end
 ;function getredshift, age
 ;; adapted with permission from ignacio ferreras' c code
